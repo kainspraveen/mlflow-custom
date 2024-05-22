@@ -5,7 +5,7 @@ import sys
 from typing import Generator
 
 from watchfiles import watch
-
+import threading
 from mlflow.deployments.server import app
 from mlflow.environment_variables import MLFLOW_DEPLOYMENTS_CONFIG
 from mlflow.gateway.config import _load_route_config
@@ -57,24 +57,36 @@ class Runner:
         self.process = None
 
     def start(self) -> None:
-        self.process = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "gunicorn",
-                "--bind",
-                f"{self.host}:{self.port}",
-                "--workers",
-                str(self.workers),
-                "--worker-class",
-                "uvicorn.workers.UvicornWorker",
-                f"{app.__name__}:create_app_from_env()",
-            ],
-            env={
-                **os.environ,
-                MLFLOW_DEPLOYMENTS_CONFIG.name: self.config_path,
-            },
-        )
+        import uvicorn
+        # self.process = subprocess.Popen(
+        #     [
+        #         sys.executable,
+        #         "-m",
+        #         "gunicorn",
+        #         "--bind",
+        #         f"{self.host}:{self.port}",
+        #         "--workers",
+        #         str(self.workers),
+        #         "--worker-class",
+        #         "uvicorn.workers.UvicornWorker",
+        #         f"{app.__name__}:create_app_from_env()",
+        #     ],
+        #     env={
+        #         **os.environ,
+        #         MLFLOW_DEPLOYMENTS_CONFIG.name: self.config_path,
+        #     },
+        # )
+        def run_server():
+            config = uvicorn.Config(
+                app=app.create_app_from_env(),
+                host=self.host,
+                port=self.port,
+                workers=self.workers
+            )
+            server = uvicorn.Server(config=config)
+            server.run()
+        p = threading.Thread(target=run_server)
+        p.start()
 
     def stop(self) -> None:
         if self.process is not None:

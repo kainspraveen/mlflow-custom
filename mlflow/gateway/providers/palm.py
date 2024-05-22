@@ -20,7 +20,8 @@ class PaLMProvider(BaseProvider):
         self.palm_config: PaLMConfig = config.model.config
 
     async def _request(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        headers = {"x-goog-api-key": self.palm_config.palm_api_key}
+        # headers = {"x-goog-api-key": self.palm_config.palm_api_key}
+        headers = {'Content-Type': 'application/json'}
         return await send_request(
             headers=headers,
             base_url="https://generativelanguage.googleapis.com/v1beta3/models/",
@@ -122,6 +123,7 @@ class PaLMProvider(BaseProvider):
             f"{self.config.model.name}:generateText",
             payload,
         )
+        print("REsponse coming to palm.py: \n", resp)
         # Response example (https://developers.generativeai.google/api/rest/generativelanguage/models/generateText)
         # ```
         # {
